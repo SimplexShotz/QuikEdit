@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>QuikEdit</title>
+    <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Ubuntu+Mono" rel="stylesheet">
+    <style>
+      @font-face {
+        font-family: "Vera Mono";
+        src: url(VeraMono.ttf);
+      }
+      * {
+        font-family: "Roboto Light", Helvetica, Arial;
+      }
+      body {
+        background-color: rgb(255, 255, 255);
+        padding: 0px;
+        margin: 0px;
+      }
+      h1 {
+        margin: 0px;
+        font-size: 24pt;
+      }
+      button {
+        background-color: rgb(255, 255, 255);
+        height: 40px;
+        border: none;
+        border-radius: 40px;
+        padding: 0px 20px 0px 20px;
+      }
+      #header {
+        background-color: rgb(50, 50, 50);
+        width: calc(100% - (100px - 48pt));
+        font-family: "Roboto Black", Helvetica, Arial;
+        color: rgb(255, 255, 255);
+        margin: 0px;
+        padding: calc(50px - 24pt);
+      }
+      #tools {
+        float: right;
+      }
+      #search {
+        width: 300px;
+        border: none;
+        font-size: 16pt;
+        margin-right: 10px;
+        padding: 5px 15px 5px 15px;
+        resize: none;
+      }
+      #search:focus {
+        outline: none;
+      }
+      #newFolder {
+        position: relative;
+        top: -13px;
+        margin-right: 10px;
+      }
+      #newFolder:focus {
+        outline: none;
+      }
+      #newFile {
+        position: relative;
+        top: -13px;
+      }
+      #newFile:focus {
+        outline: none;
+      }
+      #content {
+        padding: 50px 25% 50px 25%;
+      }
+      #files {
+        border: 1px solid rgb(200, 200, 200);
+        border-radius: 10px;
+        padding: 20px 0px 8px 0px;
+      }
+      .icon-folder {
+        display: inline-block;
+        background-color: rgb(200, 200, 200);
+        width: 25px;
+        height: 20px;
+        border: none;
+        border-radius: 5px;
+        margin-right: 5px;
+      }
+      .icon-folder-inner {
+        background-color: rgb(250, 250, 250);
+        width: 10px;
+        height: 4px;
+        border: none;
+        border-radius: 5px 0px 5px 0px;
+        margin: 1px;
+      }
+      .icon-file {
+        display: inline-block;
+        background-color: rgb(200, 200, 200);
+        width: 17px;
+        height: 20px;
+        border: none;
+        border-radius: 5px;
+        margin: 0px 9px 0px 4px;
+      }
+      .icon-file-inner {
+        background-color: rgb(250, 250, 250);
+        width: 15px;
+        height: 18px;
+        border: none;
+        border-radius: 5px;
+        margin: 1px;
+      }
+      .file {
+        background-color: rgb(255, 255, 255);
+        padding: 0px 20px 20px 20px;
+      }
+      .file:hover {
+        background-color: rgb(240, 240, 240);
+      }
+      #line-count {
+        float: left;
+        text-align: right;
+        font-family: "Vera Mono", "Ubuntu Mono", monospace;
+        width: 14px;
+        font-size: 14pt;
+        border-color: rgb(200, 200, 200);
+        padding: 2px;
+        margin: 0px 0px 0px 20px;
+      }
+      #editor {
+        float: right;
+        font-family: "Vera Mono", "Ubuntu Mono", monospace;
+        width: calc(100% - 64px);
+        font-size: 14pt;
+        border-color: rgb(200, 200, 200);
+        padding: 2px;
+        margin: 0px 20px 0px 0px;
+        resize: none;
+      }
+      #editor:focus {
+          outline: none;
+          border-color: rgb(150, 150, 150);
+      }
+      .clear {
+        clear: both;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="header">
+      <div id="tools">
+          <textarea id="search" rows="1" placeholder="Search"></textarea>
+          <button id="newFolder" onclick="newFolder()">New Folder</button>
+          <button id="newFile" onclick="newFile()">New File</button>
+      </div> <!-- #tools -->
+      <h1>QuikEdit</h1>
+    </div> <!-- #header -->
+
+    <div id="content">
+      <noscript>JavaScript is required for this site to work.</noscript>
+      <div id="path" style="padding-left: 20px; margin-bottom: 10px;"></div>
+      <div id="files"></div>
+    </div>
+
+    <script>
+      var path = [];
+      if (localStorage.getItem("quikFiles") === null) {
+        localStorage.setItem("quikFiles", JSON.stringify([{
+          name: "Example Project",
+          type: "folder",
+          contents: [{
+            name: "Example",
+            type: "file",
+            extension: "txt",
+            contents: "This is an example text file.",
+            saved: new Date().getTime()
+          }]
+        }]));
+      }
+      var files = JSON.parse(localStorage.getItem("quikFiles"));
+      function loadFiles(path) {
+        // Adds the title:
+        var partial_path = [];
+        for (var i = 0; i < path.length - 1; i++) {
+          partial_path.push(path[i]);
+        }
+        var curFiles = getFile(partial_path.splice(0, path.length - 1));
+        document.getElementById("files").innerHTML = "<h2 style='padding-left: 20px;'>" + (path.length !== 0 ? curFiles[path[path.length - 1]].name : "Files") + "</h2>";
+        if (path.length !== 0) {
+          curFiles = curFiles[path[path.length - 1]].contents;
+        }
+        // Adds the files:
+        for (var i = 0; i < curFiles.length; i++) {
+          document.getElementById("files").innerHTML += "<div class='file' onclick='openPath(" + i + ")'><div class='icon-" + curFiles[i].type + "'><div class='icon-" + curFiles[i].type + "-inner'></div></div><div style='display: inline; position: relative; top: -3px;'>" + curFiles[i].name + "</div></div>"
+        }
+        // Adds the path at the top:
+        var p = getPath(path);
+        document.getElementById("path").innerHTML = "";
+        for (var i = 0; i < p.length - 1; i++) {
+          document.getElementById("path").innerHTML += "<h3 style='display: inline; color: rgb(50, 150, 200);' onclick='back(" + i + ")'>" + p[i] + "</h3><h3 style='display: inline;'>&nbsp/&nbsp</h3>";
+        }
+        document.getElementById("path").innerHTML += "<h3 style='display: inline;'>" + p[p.length - 1] + "</h3>";
+        // Adds the lines:
+        for (var i = 0; i < document.getElementsByClassName("file").length; i++) {
+          document.getElementsByClassName("file")[i].innerHTML = "<div style='background-color: rgb(200, 200, 200); height: 1px; margin: 0px 0px 20px 0px;'></div>" + document.getElementsByClassName("file")[i].innerHTML;
+        }
+      }
+      function getPath(path) {
+        var p = ["Files"];
+        var curFiles = files;
+        if (path !== undefined) {
+          for (var i = 0; i < path.length; i++) {
+            p.push(curFiles[path[i]].name);
+            curFiles = curFiles[path[i]].contents;
+          }
+        }
+        return p;
+      }
+      function getFile(path) {
+        var curFiles = files;
+        if (path !== undefined) {
+          for (var i = 0; i < path.length; i++) {
+            curFiles = curFiles[path[i]].contents;
+          }
+        }
+        return curFiles;
+      }
+      function saveFiles() {
+        localStorage.setItem("quikFiles", JSON.stringify(files));
+      }
+      loadFiles(path);
+      function newFolder() {
+        getFile(path).splice(0, 0, {
+          name: prompt("Enter a name for the folder.").trim() || "Untitled Folder",
+          type: "folder",
+          contents: []
+        });
+        loadFiles(path);
+        saveFiles();
+      }
+      function newFile() {
+        getFile(path).splice(0, 0, {
+          name: prompt("Enter a name for the file.").trim() || "Untitled File",
+          type: "file",
+          extension: "txt",
+          contents: "",
+          saved: new Date().getTime()
+        });
+        loadFiles(path);
+        saveFiles();
+      }
+      function back(i) {
+        // Reset things in case they were just in a file:
+        document.getElementById("tools").style.display = "block";
+        document.getElementById("path").style.paddingLeft = "20px";
+        document.getElementById("path").style.marginBottom = "10px";
+        document.getElementById("content").style.padding = "50px 25% 50px 25%";
+        // Go back to what they clicked on:
+        path = path.splice(0, i);
+        loadFiles(path);
+      }
+      function openPath(i) {
+        switch(getFile(path)[i].type) {
+          case "folder":
+            path.push(i);
+            loadFiles(path);
+          break;
+          case "file":
+            openFile(path, i);
+          break;
+        }
+      }
+      function openFile(path, i) {
+        // Fix up some things:
+        document.getElementById("tools").style.display = "none";
+        document.getElementById("path").style.paddingLeft = "calc(18.75% + 20px)";
+        document.getElementById("path").style.marginBottom = "10px";
+        var file = getFile(path)[i];
+        document.getElementById("files").innerHTML = "";
+        // Adds the path at the top:
+        var p = getPath(path);
+        document.getElementById("path").innerHTML = "";
+        for (var i = 0; i < p.length; i++) {
+          document.getElementById("path").innerHTML += "<h3 style='display: inline; color: rgb(50, 150, 200);' onclick='back(" + i + ")'>" + p[i] + "</h3><h3 style='display: inline;'>&nbsp/&nbsp</h3>";
+        }
+        document.getElementById("path").innerHTML += "<h3 style='display: inline;'>" + file.name + "</h3>";
+        // Adds the title:
+        document.getElementById("files").innerHTML = "<h2 style='padding-left: 20px;'>" + file.name + "</h2>";
+        // Adds the line:
+        document.getElementById("files").innerHTML += "<div style='background-color: rgb(200, 200, 200); height: 1px; margin: 0px 20px 20px 20px;'></div>";
+        // Adds the textarea:
+        document.getElementById("files").innerHTML += "<div id='line-count'></div><textarea id='editor' contenteditable='true' wrap='off' onkeydown='updateLines()' onkeypress='updateLines()' onkeyup='updateLines()'>" + file.contents + "</textarea><div class='clear'></div>";
+        // Change the padding of the content area:
+        document.getElementById("content").style.padding = "50px 10% 50px 10%";
+        updateLines();
+      }
+      var lines = [];
+      function updateLines() {
+        console.log("keyed");
+        if (document.getElementById("editor").value.split("\n").length + 1 !== lines.length) {
+          if (document.getElementById("editor").value.split("\n").length + 1 > lines.length) {
+            for (var i = 0; i < document.getElementById("editor").value.split("\n").length + 1; i++) {
+              lines.push(lines.length + 1);
+            }
+          }
+          if (document.getElementById("editor").value.split("\n").length + 1 < lines.length) {
+            console.log(document.getElementById("editor").value.split("\n").length);
+            lines = lines.splice(0, document.getElementById("editor").value.split("\n").length);
+          }
+          document.getElementById("line-count").innerHTML = lines.join("<br>");
+        }
+        document.getElementById("editor").rows = lines.length;
+      }
+    </script>
+  </body>
+</html>
