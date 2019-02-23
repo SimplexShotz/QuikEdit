@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>QuikEdit</title>
+    <title>QuikEdit v1</title>
     <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Ubuntu+Mono" rel="stylesheet">
     <style>
@@ -39,6 +39,9 @@
       #tools {
         float: right;
       }
+      #download {
+        float: right;
+      }
       #search {
         width: 300px;
         border: none;
@@ -61,8 +64,16 @@
       #newFile {
         position: relative;
         top: -13px;
+        margin-right: 10px;
       }
       #newFile:focus {
+        outline: none;
+      }
+      #downloadProject {
+        position: relative;
+        top: -13px;
+      }
+      #downloadProject:focus {
         outline: none;
       }
       #content {
@@ -150,6 +161,9 @@
           <button id="newFolder" onclick="newFolder()">New Folder</button>
           <button id="newFile" onclick="newFile()">New File</button>
       </div> <!-- #tools -->
+      <div id="download">
+          <button id="downloadProject" onclick="downloadProject()">Download Project</button>
+      </div> <!-- #download -->
       <h1>QuikEdit</h1>
     </div> <!-- #header -->
 
@@ -307,6 +321,13 @@
           document.getElementById("line-count").innerHTML = lines.join("<br>");
         }
         document.getElementById("editor").rows = lines.length;
+      }
+      function getAllFiles(path, z) {
+        console.log(files[path]);
+      }
+      function downloadProject() {
+        var zip = new JSZip();
+        getAllFiles(path[0]);
       }
     </script>
   </body>
