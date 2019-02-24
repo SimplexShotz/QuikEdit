@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>QuikEdit v2</title>
+    <title>QuikEdit v3</title>
     <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Ubuntu+Mono" rel="stylesheet">
     <script src="jszip.min.js"></script>
@@ -324,11 +324,11 @@
         document.getElementById("files").innerHTML += "<div id='line-count'></div><textarea id='editor' contenteditable='true' wrap='off' onkeydown='updateLines()' onkeypress='updateLines()' onkeyup='updateLines(); saveFile(" + i + ")'>" + file.contents + "</textarea><div class='clear'></div>";
         // Change the padding of the content area:
         document.getElementById("content").style.padding = "50px 10% 50px 10%";
-        updateLines();
+        updateLines(true);
       }
       var lines = [];
-      function updateLines() {
-        if (document.getElementById("editor").value.split("\n").length !== lines.length || lines.length === 0) {
+      function updateLines(s) {
+        if (document.getElementById("editor").value.split("\n").length !== lines.length || s) {
           if (document.getElementById("editor").value.split("\n").length + 1 > lines.length) {
             lines = Array.from(Array(document.getElementById("editor").value.split("\n").length + 1).keys()).splice(1);
           }
@@ -342,7 +342,7 @@
       }
       function saveFile(i) {
         getFile(path)[i].contents = document.getElementById("editor").value;
-        localStorage.setItem("quikSave", JSON.stringify(files));
+        localStorage.setItem("quikFiles", JSON.stringify(files));
       }
       function getAllFiles(p, z) {
         for (var i = 0; i < getFile(p).length; i++) {
