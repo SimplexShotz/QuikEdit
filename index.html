@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>QuikEdit v1</title>
+    <title>QuikEdit v2</title>
     <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Ubuntu+Mono" rel="stylesheet">
+    <script src="jszip.min.js"></script>
+    <script src="FileSaver.min.js"></script>
     <style>
       @font-face {
         font-family: "Vera Mono";
@@ -36,11 +38,15 @@
         margin: 0px;
         padding: calc(50px - 24pt);
       }
-      #tools {
+      #navbar {
         float: right;
       }
       #download {
-        float: right;
+        display: none;
+        margin-top: 10px;
+      }
+      #tools {
+        display: inline-block;
       }
       #search {
         width: 300px;
@@ -64,7 +70,6 @@
       #newFile {
         position: relative;
         top: -13px;
-        margin-right: 10px;
       }
       #newFile:focus {
         outline: none;
@@ -72,6 +77,7 @@
       #downloadProject {
         position: relative;
         top: -13px;
+        margin-right: 10px;
       }
       #downloadProject:focus {
         outline: none;
@@ -126,19 +132,22 @@
         background-color: rgb(240, 240, 240);
       }
       #line-count {
+        background-color: rgb(250, 250, 250);
+        line-height: 14pt;
         float: left;
         text-align: right;
         font-family: "Vera Mono", "Ubuntu Mono", monospace;
-        width: 14px;
+        width: 49px;
         font-size: 14pt;
         border-color: rgb(200, 200, 200);
-        padding: 2px;
+        padding: 3px 2px 2px 2px;
         margin: 0px 0px 0px 20px;
       }
       #editor {
+        line-height: 14pt;
         float: right;
         font-family: "Vera Mono", "Ubuntu Mono", monospace;
-        width: calc(100% - 64px);
+        width: calc(100% - 99px);
         font-size: 14pt;
         border-color: rgb(200, 200, 200);
         padding: 2px;
@@ -156,14 +165,16 @@
   </head>
   <body>
     <div id="header">
-      <div id="tools">
+      <div id="navbar">
+        <div id="download">
+          <button id="downloadProject" onclick="downloadProject()">Download Project</button>
+        </div> <!-- #download -->
+        <div id="tools">
           <textarea id="search" rows="1" placeholder="Search"></textarea>
           <button id="newFolder" onclick="newFolder()">New Folder</button>
           <button id="newFile" onclick="newFile()">New File</button>
+        </div>
       </div> <!-- #tools -->
-      <div id="download">
-          <button id="downloadProject" onclick="downloadProject()">Download Project</button>
-      </div> <!-- #download -->
       <h1>QuikEdit</h1>
     </div> <!-- #header -->
 
@@ -215,6 +226,12 @@
         for (var i = 0; i < document.getElementsByClassName("file").length; i++) {
           document.getElementsByClassName("file")[i].innerHTML = "<div style='background-color: rgb(200, 200, 200); height: 1px; margin: 0px 0px 20px 0px;'></div>" + document.getElementsByClassName("file")[i].innerHTML;
         }
+        // Show / hide the download button
+        if (path.length !== 0) {
+          document.getElementById("download").style.display = "inline-block";
+        } else {
+          document.getElementById("download").style.display = "none";
+        }
       }
       function getPath(path) {
         var p = ["Files"];
@@ -262,12 +279,15 @@
       }
       function back(i) {
         // Reset things in case they were just in a file:
-        document.getElementById("tools").style.display = "block";
+        document.getElementById("tools").style.display = "inline-block";
         document.getElementById("path").style.paddingLeft = "20px";
         document.getElementById("path").style.marginBottom = "10px";
         document.getElementById("content").style.padding = "50px 25% 50px 25%";
         // Go back to what they clicked on:
         path = path.splice(0, i);
+        if (path.length === 0) {
+          document.getElementById("download").style.display = "none";
+        }
         loadFiles(path);
       }
       function openPath(i) {
@@ -283,6 +303,7 @@
       }
       function openFile(path, i) {
         // Fix up some things:
+        document.getElementById("download").style.display = "inline-block";
         document.getElementById("tools").style.display = "none";
         document.getElementById("path").style.paddingLeft = "calc(18.75% + 20px)";
         document.getElementById("path").style.marginBottom = "10px";
@@ -291,8 +312,8 @@
         // Adds the path at the top:
         var p = getPath(path);
         document.getElementById("path").innerHTML = "";
-        for (var i = 0; i < p.length; i++) {
-          document.getElementById("path").innerHTML += "<h3 style='display: inline; color: rgb(50, 150, 200);' onclick='back(" + i + ")'>" + p[i] + "</h3><h3 style='display: inline;'>&nbsp/&nbsp</h3>";
+        for (var j = 0; j < p.length; j++) {
+          document.getElementById("path").innerHTML += "<h3 style='display: inline; color: rgb(50, 150, 200);' onclick='back(" + j + ")'>" + p[j] + "</h3><h3 style='display: inline;'>&nbsp/&nbsp</h3>";
         }
         document.getElementById("path").innerHTML += "<h3 style='display: inline;'>" + file.name + "</h3>";
         // Adds the title:
@@ -300,34 +321,56 @@
         // Adds the line:
         document.getElementById("files").innerHTML += "<div style='background-color: rgb(200, 200, 200); height: 1px; margin: 0px 20px 20px 20px;'></div>";
         // Adds the textarea:
-        document.getElementById("files").innerHTML += "<div id='line-count'></div><textarea id='editor' contenteditable='true' wrap='off' onkeydown='updateLines()' onkeypress='updateLines()' onkeyup='updateLines()'>" + file.contents + "</textarea><div class='clear'></div>";
+        document.getElementById("files").innerHTML += "<div id='line-count'></div><textarea id='editor' contenteditable='true' wrap='off' onkeydown='updateLines()' onkeypress='updateLines()' onkeyup='updateLines(); saveFile(" + i + ")'>" + file.contents + "</textarea><div class='clear'></div>";
         // Change the padding of the content area:
         document.getElementById("content").style.padding = "50px 10% 50px 10%";
         updateLines();
       }
       var lines = [];
       function updateLines() {
-        console.log("keyed");
-        if (document.getElementById("editor").value.split("\n").length + 1 !== lines.length) {
+        if (document.getElementById("editor").value.split("\n").length !== lines.length || lines.length === 0) {
           if (document.getElementById("editor").value.split("\n").length + 1 > lines.length) {
-            for (var i = 0; i < document.getElementById("editor").value.split("\n").length + 1; i++) {
-              lines.push(lines.length + 1);
-            }
+            lines = Array.from(Array(document.getElementById("editor").value.split("\n").length + 1).keys()).splice(1);
           }
           if (document.getElementById("editor").value.split("\n").length + 1 < lines.length) {
             console.log(document.getElementById("editor").value.split("\n").length);
             lines = lines.splice(0, document.getElementById("editor").value.split("\n").length);
           }
           document.getElementById("line-count").innerHTML = lines.join("<br>");
+          document.getElementById("editor").rows = lines.length;
         }
-        document.getElementById("editor").rows = lines.length;
       }
-      function getAllFiles(path, z) {
-        console.log(files[path]);
+      function saveFile(i) {
+        getFile(path)[i].contents = document.getElementById("editor").value;
+        localStorage.setItem("quikSave", JSON.stringify(files));
+      }
+      function getAllFiles(p, z) {
+        for (var i = 0; i < getFile(p).length; i++) {
+          switch(getFile(p)[i].type) {
+            case "folder":
+              var n = z.folder(getFile(p)[i].name);
+              p.push(i);
+              getAllFiles(p, n);
+              p.pop();
+            break;
+            case "file":
+              z.file(getFile(p)[i].name + "." + getFile(p)[i].extension, getFile(p)[i].contents);
+            break;
+          }
+        }
       }
       function downloadProject() {
         var zip = new JSZip();
-        getAllFiles(path[0]);
+        if (files[path[0]].type === "folder") {
+          var z = zip.folder(files[path[0]].name);
+          getAllFiles([path[0]], z);
+          zip.generateAsync({ type: "blob" }).then(function(blob) {
+            saveAs(blob, files[path[0]].name + ".zip");
+          });
+        } else {
+          // TODO: download just the file
+        }
+        console.log(zip);
       }
     </script>
   </body>
