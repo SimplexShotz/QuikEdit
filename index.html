@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>QuikEdit v3</title>
+    <title>QuikEdit v2</title>
     <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Ubuntu+Mono" rel="stylesheet">
     <script src="jszip.min.js"></script>
@@ -320,7 +320,8 @@
         // Adds the line:
         document.getElementById("files").innerHTML += "<div style='background-color: rgb(200, 200, 200); height: 1px; margin: 0px 20px 20px 20px;'></div>";
         // Adds the textarea:
-        document.getElementById("files").innerHTML += "<div id='line-count'></div><textarea id='editor' wrap='off' onkeydown='updateLines()' onkeypress='updateLines()' onkeyup='updateLines(); saveFile(" + i + ")'>" + file.contents + "</textarea><div class='clear'></div>";
+        document.getElementById("files").innerHTML += "<div id='line-count'></div><textarea id='editor' wrap='off' onkeydown='updateLines()' onkeypress='updateLines()' onkeyup='updateLines(); saveFile(" + i + ")'></textarea><div class='clear'></div>";
+        document.getElementById("editor").value = file.contents;
         // Change the padding of the content area:
         document.getElementById("content").style.padding = "50px 10% 50px 10%";
         updateLines(true);
