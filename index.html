@@ -204,22 +204,22 @@
       }
       #line-count {
         background-color: rgb(250, 250, 250);
-        line-height: 14pt;
+        line-height: 15pt;
         float: left;
         text-align: right;
         font-family: "Vera Mono", "Ubuntu Mono", monospace;
         width: 49px;
-        font-size: 14pt;
+        font-size: 13pt;
         border-color: rgb(200, 200, 200);
         padding: 3px 2px 2px 2px;
         margin: 0px 0px 0px 20px;
       }
       #editor {
-        line-height: 14pt;
+        line-height: 15pt;
         float: right;
         font-family: "Vera Mono", "Ubuntu Mono", monospace;
         width: calc(100% - 99px);
-        font-size: 14pt;
+        font-size: 13pt;
         border-color: rgb(200, 200, 200);
         padding: 2px;
         margin: 0px 20px 0px 0px;
@@ -396,7 +396,11 @@
         // Adds the line:
         document.getElementById("files").innerHTML += "<div style='background-color: rgb(200, 200, 200); height: 1px; margin: 0px 20px 20px 20px;'></div>";
         // Adds the textarea:
-        document.getElementById("files").innerHTML += "<div id='line-count'></div><textarea id='editor' wrap='off' onkeydown='updateLines()' onkeypress='updateLines()' onkeyup='updateLines(); saveFile(" + i + ")'></textarea><div class='clear'></div>";
+        document.getElementById("files").innerHTML += "<div id='line-count'></div><textarea id='editor' wrap='off' onkeypress='updateLines()' onkeyup='updateLines(); saveFile(" + i + ")'></textarea><div class='clear'></div>";
+        document.getElementById("editor").onkeydown = function(e) {
+          updateLines();
+          htmlAddOns(e, this);
+        }
         document.getElementById("editor").value = file.contents;
         // Change the padding of the content area:
         document.getElementById("content").style.padding = "50px 10% 50px 10%";
@@ -453,6 +457,49 @@
           });
         } else {
           // TODO: download just the file
+        }
+      }
+      
+      // Add-ons:
+      function keyEvent(e, elem, keyC, replace, offset) {
+        if (!offset) {
+          offset = 0;
+        }
+        if (e.keyCode === keyC || e.which === keyC) {
+          e.preventDefault();
+          var s = elem.selectionStart; // This gets changed after value does
+          elem.value = elem.value.substring(0, elem.selectionStart - offset) + replace + elem.value.substring(elem.selectionEnd);
+          elem.selectionEnd = s + replace.length - offset;
+        }
+      }
+      // HTML
+      function htmlAddOns(e, elem) {
+        var currentIndent = "";
+        var prev = elem.value.substring(0, elem.selectionStart).split("");
+        var lne = elem.value.substring(0, elem.selectionStart).split("\n");
+        lne = lne[lne.length - 1];
+        // Indenting:
+        var l = lne.split("");
+        for (var i = 0; i < l.length; i++) {
+          if (l[i] !== " ") {
+            break;
+          }
+          currentIndent += " ";
+        }
+        l = l.join("").trim().split("");
+        if (l[l.length - 1] === "{") { // Extra indent for opening brackets
+          currentIndent += "  ";
+        }
+        keyEvent(e, elem, 13, "\n" + currentIndent);
+        // Removing indents (for closing brackets)
+        if (lne.trim() === "") {
+          keyEvent(e, elem, 221, "}", 2);
+        }
+        // Tabbing
+        keyEvent(e, elem, 9, "  ");
+        // Un-tabbing
+        if (prev[prev.length - 1] === " " && prev[prev.length - 2] === " ") {
+          keyEvent(e, elem, 8, "", 2);
         }
       }
     </script>
