@@ -461,21 +461,44 @@
       }
       
       // Add-ons:
-      function keyEvent(e, elem, keyC, replace, offset) {
-        if (!offset) {
-          offset = 0;
+      function keyEvent(e, elem, keyC, replace, delOffset, cursOffset) {
+        if (!delOffset) {
+          delOffset = 0;
         }
-        if (e.keyCode === keyC || e.which === keyC) {
+        if (!cursOffset) {
+          cursOffset = 0;
+        }
+        if (e.keyCode === keyC || e.which === keyC || e.key === keyC) {
           e.preventDefault();
           var s = elem.selectionStart; // This gets changed after value does
-          elem.value = elem.value.substring(0, elem.selectionStart - offset) + replace + elem.value.substring(elem.selectionEnd);
-          elem.selectionEnd = s + replace.length - offset;
+          elem.value = elem.value.substring(0, elem.selectionStart - delOffset) + replace + elem.value.substring(elem.selectionEnd);
+          elem.selectionEnd = s + replace.length - delOffset - cursOffset;
+        }
+      }
+      function moveCursor(e, elem, keyC, cursOffset) {
+        if (!cursOffset) {
+          cursOffset = 0;
+        }
+        if (e.keyCode === keyC || e.which === keyC || e.key === keyC) {
+          e.preventDefault();
+          var s = elem.selectionStart;
+          // get the text
+          var r = elem.value.substring(elem.selectionStart, elem.selectionEnd + cursOffset + 1);
+          // remove the text
+          elem.value = elem.value.substring(0, elem.selectionStart) + elem.value.substring(elem.selectionEnd + cursOffset);
+          // move the cursor
+          elem.selectionEnd = s + cursOffset;
+          // add the text back
+          elem.value = elem.value.substring(0, s) + r + elem.value.substring(elem.selectionEnd);
+          // move the cursor
+          elem.selectionEnd = s + cursOffset;
         }
       }
       // HTML
       function htmlAddOns(e, elem) {
         var currentIndent = "";
         var prev = elem.value.substring(0, elem.selectionStart).split("");
+        var next = elem.value.substring(elem.selectionEnd).split("");
         var lne = elem.value.substring(0, elem.selectionStart).split("\n");
         lne = lne[lne.length - 1];
         // Indenting:
@@ -499,6 +522,53 @@
         keyEvent(e, elem, 9, "  ");
         // Un-tabbing
         if (prev[prev.length - 1] === " " && prev[prev.length - 2] === " ") {
+          keyEvent(e, elem, 8, "", 2);
+        }
+        // "Bracketing"
+        // "Bracketing" - Doubling:
+        keyEvent(e, elem, 57, "()", 0, 1);
+        keyEvent(e, elem, "{", "{}", 0, 1);
+        keyEvent(e, elem, "[", "[]", 0, 1);
+        // "Bracketing" - Entering:
+        if (prev[prev.length - 1] === "{" && next[0] === "}") {
+          keyEvent(e, elem, 13, currentIndent + "\n" + currentIndent.substring(0, currentIndent.length - 2), currentIndent.length, currentIndent.length - 1); // + 1 to make up for the "\n", -2 to make up for the "  "
+        }
+        if (prev[prev.length - 1] === "(" && next[0] === ")" || prev[prev.length - 1] === "[" && next[0] === "]") {
+          keyEvent(e, elem, 13, currentIndent + "  \n" + currentIndent, currentIndent.length, currentIndent.length + 1); // + 1 to make up for the "\n"
+        }
+        // "Bracketing" - Skipping:
+        if (next[0] === ")") {
+          moveCursor(e, elem, 48, 1);
+        }
+        if (next[0] === "}") {
+          moveCursor(e, elem, "}", 1);
+        }
+        if (next[0] === "]") {
+          moveCursor(e, elem, "]", 1);
+        }
+        // "Bracketing" - Deleting:
+        if (prev[prev.length - 1] === "(" && next[0] === ")" || prev[prev.length - 1] === "{" && next[0] === "}" || prev[prev.length - 1] === "[" && next[0] === "]") {
+          moveCursor(e, elem, 8, 1);
+          keyEvent(e, elem, 8, "", 2);
+        }
+        // "Quoting"
+        // "Quoting" - Doubling
+        if (next[0] !== "\"") {
+          keyEvent(e, elem, "\"", "\"\"", 0, 1);
+        }
+        if (next[0] !== "'") {
+          keyEvent(e, elem, "'", "''", 0, 1);
+        }
+        // "Quoting" - Skipping
+        if (next[0] === "\"") {
+          moveCursor(e, elem, "\"", 1);
+        }
+        if (next[0] === "'") {
+          moveCursor(e, elem, "'", 1);
+        }
+        // "Quoting" - Deleting:
+        if (prev[prev.length - 1] === "\"" && next[0] === "\"" || prev[prev.length - 1] === "'" && next[0] === "'") {
+          moveCursor(e, elem, 8, 1);
           keyEvent(e, elem, 8, "", 2);
         }
       }
