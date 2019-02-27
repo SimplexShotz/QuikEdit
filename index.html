@@ -123,6 +123,78 @@
         border-radius: 5px;
         margin: 1px;
       }
+      .icon-trash-container {
+        float: right;
+        position: relative;
+        top: -4px;
+        background-color: rgba(0, 0, 0, 0);
+        padding: 9px 0px 0px 0px;
+      }
+      .icon-trash-container:hover {
+        background-color: rgba(225, 225, 225);
+      }
+      .icon-trash-container:hover .icon-trash-lid-bottom, .icon-trash-container:hover .icon-trash-lid-top {
+        transform: translateY(-1px) rotate(-10deg);
+      }
+      .icon-trash {
+        position: relative;
+        display: inline-block;
+        background-color: rgb(200, 200, 200);
+        width: 17px;
+        height: 14px;
+        border: none;
+        border-radius: 0px 0px 5px 5px;
+        margin: 0px 5px 0px 4px;
+      }
+      .icon-trash-top {
+        background-color: rgb(200, 200, 200);
+        position: relative;
+        top: -2px;
+        left: -1px;
+        width: 19px;
+        height: 2px;
+        border: none;
+        border-radius: 5px;
+      }
+      .icon-trash-lid-top {
+        background-color: rgb(200, 200, 200);
+        position: relative;
+        top: -9px;
+        left: 5px;
+        width: 5px;
+        height: 1px;
+        border: none;
+        border-radius: 5px;
+      }
+      .icon-trash-lid-bottom {
+        background-color: rgb(200, 200, 200);
+        position: relative;
+        top: -9px;
+        left: -1px;
+        width: 19px;
+        height: 3px;
+        border: none;
+        border-radius: 5px;
+      }
+      .icon-trash-line {
+        float: left;
+        background-color: rgb(255, 255, 255);
+        position: relative;
+        top: -5px;
+        width: 1px;
+        height: 9px;
+        border: none;
+        border-radius: 5px;
+      }
+      .icon-trash-line-1 {
+        left: 4px;
+      }
+      .icon-trash-line-2 {
+        left: 7px;
+      }
+      .icon-trash-line-3 {
+        left: 10px;
+      }
       .file {
         background-color: rgb(255, 255, 255);
         padding: 0px 20px 20px 20px;
@@ -199,6 +271,7 @@
         }]));
       }
       var files = JSON.parse(localStorage.getItem("quikFiles"));
+      var open = true;
       function loadFiles(path) {
         // Adds the title:
         var partial_path = [];
@@ -212,7 +285,7 @@
         }
         // Adds the files:
         for (var i = 0; i < curFiles.length; i++) {
-          document.getElementById("files").innerHTML += "<div class='file' onclick='openPath(" + i + ")'><div class='icon-" + curFiles[i].type + "'><div class='icon-" + curFiles[i].type + "-inner'></div></div><div style='display: inline; position: relative; top: -3px;'>" + curFiles[i].name + "</div></div>"
+          document.getElementById("files").innerHTML += "<div class='file' onclick='openPath(" + i + ");'><div class='icon-" + curFiles[i].type + "'><div class='icon-" + curFiles[i].type + "-inner'></div></div><div style='display: inline; position: relative; top: -3px;'>" + curFiles[i].name + "</div><div class='icon-trash-container' onclick='deletePath(" + i + ")'><div class='icon-trash'><div class='icon-trash-top'></div><div class='icon-trash-lid-top'></div><div class='icon-trash-lid-bottom'></div><div class='icon-trash-line-container'><div class='icon-trash-line icon-trash-line-1'></div><div class='icon-trash-line icon-trash-line-2'></div><div class='icon-trash-line icon-trash-line-3'></div></div></div></div></div>"
         }
         // Adds the path at the top:
         var p = getPath(path);
@@ -290,15 +363,18 @@
         loadFiles(path);
       }
       function openPath(i) {
-        switch(getFile(path)[i].type) {
-          case "folder":
-            path.push(i);
-            loadFiles(path);
-          break;
-          case "file":
-            openFile(path, i);
-          break;
+        if (open) {
+          switch(getFile(path)[i].type) {
+            case "folder":
+              path.push(i);
+              loadFiles(path);
+            break;
+            case "file":
+              openFile(path, i);
+            break;
+          }
         }
+        open = true;
       }
       function openFile(path, i) {
         // Fix up some things:
@@ -333,7 +409,6 @@
             lines = Array.from(Array(document.getElementById("editor").value.split("\n").length + 1).keys()).splice(1);
           }
           if (document.getElementById("editor").value.split("\n").length + 1 < lines.length) {
-            console.log(document.getElementById("editor").value.split("\n").length);
             lines = lines.splice(0, document.getElementById("editor").value.split("\n").length);
           }
           document.getElementById("line-count").innerHTML = lines.join("<br>");
@@ -343,6 +418,15 @@
       function saveFile(i) {
         getFile(path)[i].contents = document.getElementById("editor").value;
         localStorage.setItem("quikFiles", JSON.stringify(files));
+      }
+      function deletePath(i) {
+        open = false;
+        var f = getFile(path)[i];
+        if (confirm("Are you sure you want to delete " + f.name + (f.extension ? ("." + f.extension) : "") + "?\n\nThis action cannot be undone.")) {
+          getFile(path).splice(i, 1);
+          localStorage.setItem("quikFiles", JSON.stringify(files));
+          loadFiles(path);
+        }
       }
       function getAllFiles(p, z) {
         for (var i = 0; i < getFile(p).length; i++) {
@@ -370,7 +454,6 @@
         } else {
           // TODO: download just the file
         }
-        console.log(zip);
       }
     </script>
   </body>
