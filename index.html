@@ -1,11 +1,13 @@
 <!DOCTYPE html>
+<!-- TODO: manage file extensions, finish the edit button + editing file / folder names -->
 <html>
   <head>
-    <title>QuikEdit v2</title>
+    <title>QuikEdit</title>
     <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Ubuntu+Mono" rel="stylesheet">
     <script src="jszip.min.js"></script>
     <script src="FileSaver.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.8.6/firebase.js"></script>
     <style>
       @font-face {
         font-family: "Vera Mono";
@@ -70,8 +72,16 @@
       #newFile {
         position: relative;
         top: -13px;
+        margin-right: 10px;
       }
       #newFile:focus {
+        outline: none;
+      }
+      #login {
+        position: relative;
+        top: -13px;
+      }
+      #login:focus {
         outline: none;
       }
       #downloadProject {
@@ -131,7 +141,7 @@
         padding: 9px 0px 0px 0px;
       }
       .icon-trash-container:hover {
-        background-color: rgba(225, 225, 225);
+        background-color: rgba(235, 235, 235);
       }
       .icon-trash-container:hover .icon-trash-lid-bottom, .icon-trash-container:hover .icon-trash-lid-top {
         transform: translateY(-1px) rotate(-10deg);
@@ -195,6 +205,34 @@
       .icon-trash-line-3 {
         left: 10px;
       }
+      .icon-edit-container {
+        float: right;
+        position: relative;
+        top: -4px;
+        background-color: rgba(0, 0, 0, 0);
+        padding: 9px 0px 0px 0px;
+        margin-right: 5px;
+      }
+      .icon-edit-container:hover {
+        background-color: rgba(235, 235, 235);
+      }
+      .icon-edit-container-inner {
+        /* transform: rotate(-20deg); */
+      }
+      .icon-edit-main {
+        position: relative;
+        top: -4px;
+        background-color: rgb(200, 200, 200);
+        width: 4px;
+        height: 17px;
+      }
+      .icon-edit-tip {
+        position: relative;
+        top: -4px;
+        background-color: rgb(200, 200, 200);
+        width: 4px;
+        height: 17px;
+      }
       .file {
         background-color: rgb(255, 255, 255);
         padding: 0px 20px 20px 20px;
@@ -244,6 +282,7 @@
           <textarea id="search" rows="1" placeholder="Search"></textarea>
           <button id="newFolder" onclick="newFolder()">New Folder</button>
           <button id="newFile" onclick="newFile()">New File</button>
+          <button id="login" onclick="login()">Login</button>
         </div>
       </div> <!-- #tools -->
       <h1>QuikEdit</h1>
@@ -272,6 +311,84 @@
       }
       var files = JSON.parse(localStorage.getItem("quikFiles"));
       var open = true;
+      var currentOpenedFile = -1;
+      // Firebase Setup
+      var config = {
+        apiKey: "AIzaSyC8da-GOEnQmfdw1vDGKqdMe72IRPLR-84",
+        authDomain: "quikedit.firebaseapp.com",
+        databaseURL: "https://quikedit.firebaseio.com",
+        projectId: "quikedit",
+        storageBucket: "quikedit.appspot.com",
+        messagingSenderId: "210618888710"
+      };
+      firebase.initializeApp(config);
+      var database = firebase.database();
+      var ref = database.ref("data");
+      
+      var account; // username of the account
+      
+      function login() {
+        var username = prompt("Enter your username.");
+        ref.once("value", function(data) {
+          var d = data.val();
+          if (d !== null && d[username] !== undefined) { // Account exists; login
+            if (window.btoa(prompt("Enter your password.")) === d[username].password) {
+              var success = true;
+              if (JSON.stringify(files) !== d[username].files) { // Files don't match, ask if they should be merged
+                switch (prompt("The files on your device and the ones stored on your account don't match.\n\nIf you want the files on your device to overwrite the files on your account, type in \"DEVICE\".\n\nIf you want the files on your account to overwrite the ones on your device, type in \"ACCOUNT\".\n\nPress Cancel to prevent any overwriting.")) {
+                  case "DEVICE": // Set files on their account to the ones stored locally
+                    if (confirm("Are you sure you want to overwrite the files on your account?\n\nThis action cannot be undone.")) {
+                      account = username;
+                      saveFiles();
+                    }
+                  break;
+                  case "ACCOUNT": // Set the files stored locally to the ones on their account
+                    if (confirm("Are you sure you want to overwrite the files on your device?\n\nThis action cannot be undone.")) {
+                      account = username;
+                      files = JSON.parse(d[username].files);
+                      saveFiles();
+                      loadFiles(path);
+                    }
+                  break;
+                  default:
+                    success = false;
+                  break;
+                }
+              }
+              if (success) {
+                document.getElementById("login").style.display = "none"; // Fix styling
+                document.getElementById("newFile").style.marginRight = "0px"; // ^
+              }
+            } else { // Invalid password
+              alert("[ERROR] Invalid password!");
+            }
+          } else if (username.trim() !== "") { // Account does not exist; ask if they want to create the account
+            if (confirm("An account under that username does not exist. Would you like to create it?")) {
+              var chars = (" abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()-_=+[]\{}|;:'\",./<>?`~").split("");
+              var valid = false;
+              while (!valid) {
+                var password = prompt("Enter the password that you would like to use.").split("");
+                if (password.length < 4) { // Password is too short
+                  alert("[ERROR] Passwords must be at least 4 characters long.");
+                } else if (password.length > 250) { // Password is WAY too long
+                  alert("[ERROR] Passwords are limited to 250 characters to save database storage.");
+                } else {
+                  if (password.filter(v => { return ~chars.indexOf(v); }).length !== password.length) { // Invalid character was used
+                    alert("[ERROR] An invalid character was used. Try to only use English letters, numbers, and basic symbols.");
+                  } else { // A valid password was entered
+                    ref.child(username).child("password").set(window.btoa(password.join(""))); // Set the account's password
+                    ref.child(username).child("files").set(JSON.stringify(files)); // Set the account's files
+                    document.getElementById("login").style.display = "none"; // Fix styling
+                    document.getElementById("newFile").style.marginRight = "0px"; // ^
+                    valid = true; // Breaks out of the while loop
+                  }
+                }
+                password = ""; // Reset the locally stored password, just in case
+              }
+            }
+          }
+        });
+      }
       function loadFiles(path) {
         // Adds the title:
         var partial_path = [];
@@ -285,7 +402,7 @@
         }
         // Adds the files:
         for (var i = 0; i < curFiles.length; i++) {
-          document.getElementById("files").innerHTML += "<div class='file' onclick='openPath(" + i + ");'><div class='icon-" + curFiles[i].type + "'><div class='icon-" + curFiles[i].type + "-inner'></div></div><div style='display: inline; position: relative; top: -3px;'>" + curFiles[i].name + "</div><div class='icon-trash-container' onclick='deletePath(" + i + ")'><div class='icon-trash'><div class='icon-trash-top'></div><div class='icon-trash-lid-top'></div><div class='icon-trash-lid-bottom'></div><div class='icon-trash-line-container'><div class='icon-trash-line icon-trash-line-1'></div><div class='icon-trash-line icon-trash-line-2'></div><div class='icon-trash-line icon-trash-line-3'></div></div></div></div></div>"
+          document.getElementById("files").innerHTML += "<div class='file' onclick='openPath(" + i + ");'><div class='icon-" + curFiles[i].type + "'><div class='icon-" + curFiles[i].type + "-inner'></div></div><div style='display: inline; position: relative; top: -3px;'>" + curFiles[i].name + "</div><div class='icon-trash-container' onclick='deletePath(" + i + ")'><div class='icon-trash'><div class='icon-trash-top'></div><div class='icon-trash-lid-top'></div><div class='icon-trash-lid-bottom'></div><div class='icon-trash-line-container'><div class='icon-trash-line icon-trash-line-1'></div><div class='icon-trash-line icon-trash-line-2'></div><div class='icon-trash-line icon-trash-line-3'></div></div></div></div><div class='icon-edit-container'><div class='icon-edit-container-inner'><div class='icon-edit-main'></div><div class='icon-edit-tip></div></div></div></div>"
         }
         // Adds the path at the top:
         var p = getPath(path);
@@ -326,7 +443,10 @@
         return curFiles;
       }
       function saveFiles() {
-        localStorage.setItem("quikFiles", JSON.stringify(files));
+        localStorage.setItem("quikFiles", JSON.stringify(files)); // Save to their device
+        if (account !== undefined) { // Save to their account
+          ref.child(account).child("files").set(JSON.stringify(files));
+        }
       }
       loadFiles(path);
       function newFolder() {
@@ -405,6 +525,7 @@
         // Change the padding of the content area:
         document.getElementById("content").style.padding = "50px 10% 50px 10%";
         updateLines(true);
+        currentOpenedFile = i;
       }
       var lines = [];
       function updateLines(s) {
@@ -421,14 +542,14 @@
       }
       function saveFile(i) {
         getFile(path)[i].contents = document.getElementById("editor").value;
-        localStorage.setItem("quikFiles", JSON.stringify(files));
+        saveFiles();
       }
       function deletePath(i) {
         open = false;
         var f = getFile(path)[i];
         if (confirm("Are you sure you want to delete " + f.name + (f.extension ? ("." + f.extension) : "") + "?\n\nThis action cannot be undone.")) {
           getFile(path).splice(i, 1);
-          localStorage.setItem("quikFiles", JSON.stringify(files));
+          saveFiles();
           loadFiles(path);
         }
       }
@@ -449,14 +570,28 @@
       }
       function downloadProject() {
         var zip = new JSZip();
-        if (files[path[0]].type === "folder") {
+        if (path[0] !== undefined && files[path[0]].type === "folder") {
           var z = zip.folder(files[path[0]].name);
           getAllFiles([path[0]], z);
           zip.generateAsync({ type: "blob" }).then(function(blob) {
             saveAs(blob, files[path[0]].name + ".zip");
           });
         } else {
-          // TODO: download just the file
+          var file = new Blob([files[currentOpenedFile].contents], {type: files[currentOpenedFile].extension}); // Data / type
+          if (window.navigator.msSaveOrOpenBlob) { // IE10+
+            window.navigator.msSaveOrOpenBlob(file, filename);
+          } else { // Others
+            var a = document.createElement("a"),
+            url = URL.createObjectURL(file);
+            a.href = url;
+            a.download = files[currentOpenedFile].name + "." + files[currentOpenedFile].extension + ".html"; // File name TODO: remove .html :)
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function() {
+              document.body.removeChild(a);
+              window.URL.revokeObjectURL(url);  
+            }, 0);
+          }
         }
       }
       
@@ -496,6 +631,9 @@
       }
       // HTML
       function htmlAddOns(e, elem) {
+        if (elem.value.toLowerCase() === "html") {
+          elem.value = "<!DOCTYPE html>\n<html>\n\n</html>";
+        }
         var currentIndent = "";
         var prev = elem.value.substring(0, elem.selectionStart).split("");
         var next = elem.value.substring(elem.selectionEnd).split("");
@@ -526,7 +664,7 @@
         }
         // "Bracketing"
         // "Bracketing" - Doubling:
-        keyEvent(e, elem, 57, "()", 0, 1);
+        keyEvent(e, elem, "(", "()", 0, 1);
         keyEvent(e, elem, "{", "{}", 0, 1);
         keyEvent(e, elem, "[", "[]", 0, 1);
         // "Bracketing" - Entering:
@@ -538,7 +676,7 @@
         }
         // "Bracketing" - Skipping:
         if (next[0] === ")") {
-          moveCursor(e, elem, 48, 1);
+          moveCursor(e, elem, ")", 1);
         }
         if (next[0] === "}") {
           moveCursor(e, elem, "}", 1);
