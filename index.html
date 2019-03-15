@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- TODO: manage file extensions, finish the edit button + editing file / folder names -->
+<!-- TODO: manage file extensions, finish the edit button + editing file / folder names, test cancel button when overwriting (the final confirm) [should work now] -->
 <html>
   <head>
     <title>QuikEdit</title>
@@ -333,25 +333,24 @@
           var d = data.val();
           if (d !== null && d[username] !== undefined) { // Account exists; login
             if (window.btoa(prompt("Enter your password.")) === d[username].password) {
-              var success = true;
+              var success = false;
               if (JSON.stringify(files) !== d[username].files) { // Files don't match, ask if they should be merged
                 switch (prompt("The files on your device and the ones stored on your account don't match.\n\nIf you want the files on your device to overwrite the files on your account, type in \"DEVICE\".\n\nIf you want the files on your account to overwrite the ones on your device, type in \"ACCOUNT\".\n\nPress Cancel to prevent any overwriting.")) {
                   case "DEVICE": // Set files on their account to the ones stored locally
                     if (confirm("Are you sure you want to overwrite the files on your account?\n\nThis action cannot be undone.")) {
+                      success = true;
                       account = username;
                       saveFiles();
                     }
                   break;
                   case "ACCOUNT": // Set the files stored locally to the ones on their account
                     if (confirm("Are you sure you want to overwrite the files on your device?\n\nThis action cannot be undone.")) {
+                      success = true;
                       account = username;
                       files = JSON.parse(d[username].files);
                       saveFiles();
                       loadFiles(path);
                     }
-                  break;
-                  default:
-                    success = false;
                   break;
                 }
               }
