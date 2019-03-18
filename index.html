@@ -573,7 +573,7 @@
       }
       function editPath(i) {
         open = false;
-        var fileName = prompt("Enter a new name for the " + getFile(path)[i].type + ".").trim() || "Untitled File";
+        var fileName = prompt("Enter a new name for the " + getFile(path)[i].type + ".", getFile(path)[i].name + "." + getFile(path)[i].extension).trim() || "Untitled File";
         fileName = fileName.split(".");
         var fileExtension = fileName.length > 1 ? fileName[fileName.length - 1] : "txt";
         if (fileName.length > 1) {
