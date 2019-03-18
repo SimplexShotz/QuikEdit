@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- TODO: manage file extensions, finish the edit button + editing file / folder names, test cancel button when overwriting (the final confirm) [should work now] -->
+<!-- TODO: test cancel button when overwriting (the final confirm) [should work now] -->
 <html>
   <head>
     <title>QuikEdit</title>
@@ -33,6 +33,8 @@
         padding: 0px 20px 0px 20px;
       }
       #header {
+        position: sticky;
+        top: 0px;
         background-color: rgb(50, 50, 50);
         width: calc(100% - (100px - 48pt));
         font-family: "Roboto Black", Helvetica, Arial;
@@ -210,28 +212,47 @@
         position: relative;
         top: -4px;
         background-color: rgba(0, 0, 0, 0);
-        padding: 9px 0px 0px 0px;
-        margin-right: 5px;
+        padding: 10px 0px 0px 0px;
+        margin: 0px 10px 0px 10px;
+        width: 20px;
       }
       .icon-edit-container:hover {
         background-color: rgba(235, 235, 235);
       }
       .icon-edit-container-inner {
-        /* transform: rotate(-20deg); */
+        padding-left: 6px;
+        height: 17px;
+        transform: rotate(20deg);
       }
       .icon-edit-main {
         position: relative;
-        top: -4px;
+        top: -6px;
         background-color: rgb(200, 200, 200);
         width: 4px;
-        height: 17px;
+        height: 13px;
+      }
+      .icon-edit-end {
+        position: relative;
+        top: -7px;
+        background-color: rgb(200, 200, 200);
+        width: 4px;
+        height: 3px;
       }
       .icon-edit-tip {
         position: relative;
-        top: -4px;
-        background-color: rgb(200, 200, 200);
-        width: 4px;
-        height: 17px;
+        top: -5px;
+        width: 0px;
+        height: 0px;
+        border-left: 2px solid rgba(0, 0, 0, 0);
+        border-right: 2px solid rgba(0, 0, 0, 0);
+        border-top: 4px solid rgb(200, 200, 200);
+      }
+      .extension {
+        float: right;
+        position: relative;
+        top: 3px;
+        color: rgb(200, 200, 200);
+        margin-right: 5px;
       }
       .file {
         background-color: rgb(255, 255, 255);
@@ -324,6 +345,7 @@
       firebase.initializeApp(config);
       var database = firebase.database();
       var ref = database.ref("data");
+      var test = database.ref("test");
       
       var account; // username of the account
       
@@ -401,7 +423,7 @@
         }
         // Adds the files:
         for (var i = 0; i < curFiles.length; i++) {
-          document.getElementById("files").innerHTML += "<div class='file' onclick='openPath(" + i + ");'><div class='icon-" + curFiles[i].type + "'><div class='icon-" + curFiles[i].type + "-inner'></div></div><div style='display: inline; position: relative; top: -3px;'>" + curFiles[i].name + "</div><div class='icon-trash-container' onclick='deletePath(" + i + ")'><div class='icon-trash'><div class='icon-trash-top'></div><div class='icon-trash-lid-top'></div><div class='icon-trash-lid-bottom'></div><div class='icon-trash-line-container'><div class='icon-trash-line icon-trash-line-1'></div><div class='icon-trash-line icon-trash-line-2'></div><div class='icon-trash-line icon-trash-line-3'></div></div></div></div><div class='icon-edit-container'><div class='icon-edit-container-inner'><div class='icon-edit-main'></div><div class='icon-edit-tip></div></div></div></div>"
+          document.getElementById("files").innerHTML += "<div class='file' onclick='openPath(" + i + ");'><div class='icon-" + curFiles[i].type + "'><div class='icon-" + curFiles[i].type + "-inner'></div></div><div style='display: inline; position: relative; top: -3px;'>" + curFiles[i].name + "</div><div class='icon-trash-container' onclick='deletePath(" + i + ")'><div class='icon-trash'><div class='icon-trash-top'></div><div class='icon-trash-lid-top'></div><div class='icon-trash-lid-bottom'></div><div class='icon-trash-line-container'><div class='icon-trash-line icon-trash-line-1'></div><div class='icon-trash-line icon-trash-line-2'></div><div class='icon-trash-line icon-trash-line-3'></div></div></div></div><div class='icon-edit-container' onclick='editPath(" + i + ")'><div class='icon-edit-container-inner'><div class='icon-edit-end'></div><div class='icon-edit-main'></div><div class='icon-edit-tip'></div></div></div><div class='extension'>" + (curFiles[i].extension ? curFiles[i].extension : "folder") + "</div></div>"
         }
         // Adds the path at the top:
         var p = getPath(path);
@@ -458,10 +480,16 @@
         saveFiles();
       }
       function newFile() {
+        var fileName = prompt("Enter a name for the file.").trim() || "Untitled File";
+        fileName = fileName.split(".");
+        var fileExtension = fileName.length > 1 ? fileName[fileName.length - 1] : "txt";
+        if (fileName.length > 1) {
+          fileName = fileName.splice(0, fileName.length - 1).join(".");
+        }
         getFile(path).splice(0, 0, {
-          name: prompt("Enter a name for the file.").trim() || "Untitled File",
+          name: fileName,
           type: "file",
-          extension: "txt",
+          extension: fileExtension,
           contents: "",
           saved: new Date().getTime()
         });
@@ -543,6 +571,20 @@
         getFile(path)[i].contents = document.getElementById("editor").value;
         saveFiles();
       }
+      function editPath(i) {
+        open = false;
+        var fileName = prompt("Enter a new name for the " + getFile(path)[i].type + ".").trim() || "Untitled File";
+        fileName = fileName.split(".");
+        var fileExtension = fileName.length > 1 ? fileName[fileName.length - 1] : "txt";
+        if (fileName.length > 1) {
+          fileName = fileName.splice(0, fileName.length - 1).join(".");
+        }
+        console.log(getFile(path)[i] + " " + fileName + " . " + fileExtension)
+        getFile(path)[i].name = fileName;
+        getFile(path)[i].extension = fileExtension;
+        saveFiles();
+        loadFiles(path);
+      }
       function deletePath(i) {
         open = false;
         var f = getFile(path)[i];
@@ -583,7 +625,7 @@
             var a = document.createElement("a"),
             url = URL.createObjectURL(file);
             a.href = url;
-            a.download = files[currentOpenedFile].name + "." + files[currentOpenedFile].extension + ".html"; // File name TODO: remove .html :)
+            a.download = files[currentOpenedFile].name + "." + files[currentOpenedFile].extension; // File name
             document.body.appendChild(a);
             a.click();
             setTimeout(function() {
