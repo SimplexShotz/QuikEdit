@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- TODO: test cancel button when overwriting (the final confirm) [should work now] -->
+<!-- TODO: test cancel button when overwriting (the final confirm) [should work now], set success to true when nothing needs to be overwritten, tools bar -->
 <html>
   <head>
     <title>QuikEdit</title>
@@ -289,6 +289,34 @@
           outline: none;
           border-color: rgb(150, 150, 150);
       }
+      #editor-tools {
+        float: right;
+        margin-right: 20px;
+        color: rgb(50, 150, 200);
+        position: relative;
+        top: 6px;
+      }
+      #editor-tools-popup {
+        display: none;
+        background-color: rgb(255, 255, 255);
+        position: fixed;
+        left: 25%;
+        right: 25%;
+        width: 50%;
+        top: 25%;
+        bottom: 25%;
+        height: 50%;
+        border-radius: 10px;
+        box-shadow: 0px 0px 10px rgba(200, 200, 200, 0.5);
+        padding: 20px;
+      }
+      #editor-tools-popup-header {
+        font-size: 20pt;
+        font-family: "Roboto Medium", Helvetica, Arial;
+      }
+      #editor-tools-popup-x {
+        float: right;
+      }
       .clear {
         clear: both;
       }
@@ -314,6 +342,7 @@
       <noscript>JavaScript is required for this site to work.</noscript>
       <div id="path" style="padding-left: 20px; margin-bottom: 10px;"></div>
       <div id="files"></div>
+      <div id="editor-tools-popup"></div>
     </div>
 
     <script>
@@ -376,6 +405,8 @@
                     }
                   break;
                 }
+              } else {
+                success = true;
               }
               if (success) {
                 document.getElementById("login").style.display = "none"; // Fix styling
@@ -539,8 +570,10 @@
           document.getElementById("path").innerHTML += "<h3 style='display: inline; color: rgb(50, 150, 200);' onclick='back(" + j + ")'>" + p[j] + "</h3><h3 style='display: inline;'>&nbsp/&nbsp</h3>";
         }
         document.getElementById("path").innerHTML += "<h3 style='display: inline;'>" + file.name + "</h3>";
+        // Adds the toolbar:
+        document.getElementById("files").innerHTML = "<h3 id='editor-tools' onclick='openTools()'>Tools</h3>";
         // Adds the title:
-        document.getElementById("files").innerHTML = "<h2 style='padding-left: 20px;'>" + file.name + "</h2>";
+        document.getElementById("files").innerHTML += "<h2 style='padding-left: 20px;'>" + file.name + "</h2>";
         // Adds the line:
         document.getElementById("files").innerHTML += "<div style='background-color: rgb(200, 200, 200); height: 1px; margin: 0px 20px 20px 20px;'></div>";
         // Adds the textarea:
@@ -554,6 +587,16 @@
         document.getElementById("content").style.padding = "50px 10% 50px 10%";
         updateLines(true);
         currentOpenedFile = i;
+      }
+      function openTools() {
+        document.getElementById("editor-tools-popup").style.display = "block";
+        // Tools Header:
+        document.getElementById("editor-tools-popup").innerHTML = "<div id='editor-tools-popup-header'>Tools<div id='editor-tools-popup-x' onclick='closeTools()'>X</div></div>";
+        // Tools Contents:
+        document.getElementById("editor-tools-popup").innerHTML += "<div id='editor-tools-popup-contents'></div>"
+      }
+      function closeTools() {
+        document.getElementById("editor-tools-popup").style.display = "none";
       }
       var lines = [];
       function updateLines(s) {
