@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- TODO: test cancel button when overwriting (the final confirm) [should work now], set success to true when nothing needs to be overwritten, tools bar -->
+<!-- TODO: tools bar, auto login, logout -->
 <html>
   <head>
     <title>QuikEdit</title>
@@ -81,10 +81,22 @@
         outline: none;
       }
       #login {
+        float: right;
         position: relative;
-        top: -13px;
+        top: -2px;
+        margin-left: 5px;
       }
       #login:focus {
+        outline: none;
+      }
+      #logout {
+        float: right;
+        display: none;
+        position: relative;
+        top: -2px;
+        margin-left: 5px;
+      }
+      #logout:focus {
         outline: none;
       }
       #downloadProject {
@@ -333,6 +345,7 @@
           <button id="newFolder" onclick="newFolder()">New Folder</button>
           <button id="newFile" onclick="newFile()">New File</button>
           <button id="login" onclick="login()">Login</button>
+          <button id="logout" onclick="logout()">Logout</button>
         </div>
       </div> <!-- #tools -->
       <h1>QuikEdit</h1>
@@ -375,7 +388,44 @@
       firebase.initializeApp(config);
       var database = firebase.database();
       var ref = database.ref("data");
-      var test = database.ref("test");
+      
+      if (localStorage.getItem("account") === null) {
+        localStorage.setItem("account", "");
+      }
+      if (localStorage.getItem("account") !== "") {
+        var username = localStorage.getItem("account");
+        ref.once("value", function(data) {
+          var d = data.val();
+          var success = false;
+          if (JSON.stringify(files) !== d[username].files) { // Files don't match, ask if they should be merged
+            switch (prompt("The files on your device and the ones stored on your account don't match.\n\nIf you want the files on your device to overwrite the files on your account, type in \"DEVICE\".\n\nIf you want the files on your account to overwrite the ones on your device, type in \"ACCOUNT\".\n\nPress Cancel to prevent any overwriting.")) {
+              case "DEVICE": // Set files on their account to the ones stored locally
+                if (confirm("Are you sure you want to overwrite the files on your account?\n\nThis action cannot be undone.")) {
+                  success = true;
+                  account = username;
+                  saveFiles();
+                }
+              break;
+              case "ACCOUNT": // Set the files stored locally to the ones on their account
+                if (confirm("Are you sure you want to overwrite the files on your device?\n\nThis action cannot be undone.")) {
+                  success = true;
+                  account = username;
+                  files = JSON.parse(d[username].files);
+                  saveFiles();
+                  loadFiles(path);
+                }
+              break;
+            }
+          } else {
+            account = username;
+            success = true;
+          }
+          if (success) {
+            document.getElementById("login").style.display = "none"; // Hide Login button
+            document.getElementById("logout").style.display = "block"; // Show Logout button
+          }
+        });
+      }
       
       var account; // username of the account
       
@@ -406,11 +456,14 @@
                   break;
                 }
               } else {
+                account = username;
                 success = true;
               }
               if (success) {
-                document.getElementById("login").style.display = "none"; // Fix styling
-                document.getElementById("newFile").style.marginRight = "0px"; // ^
+                localStorage.setItem("account", account);
+                document.getElementById("login").style.display = "none"; // Hide Login button
+                document.getElementById("logout").style.display = "block"; // Show Logout button
+                // document.getElementById("newFile").style.marginRight = "0px"; // ^
               }
             } else { // Invalid password
               alert("[ERROR] Invalid password!");
@@ -441,6 +494,12 @@
             }
           }
         });
+      }
+      function logout() {
+        account = "";
+        localStorage.setItem("account", "");
+        document.getElementById("login").style.display = "block"; // Show Login button
+        document.getElementById("logout").style.display = "none"; // Hide Logout button
       }
       function loadFiles(path) {
         // Adds the title:
@@ -617,15 +676,20 @@
       }
       function editPath(i) {
         open = false;
-        var fileName = prompt("Enter a new name for the " + getFile(path)[i].type + ".", getFile(path)[i].name + "." + getFile(path)[i].extension).trim() || "Untitled File";
+        var fileName = prompt("Enter a new name for the " + getFile(path)[i].type + ".", getFile(path)[i].name + (getFile(path)[i].type === "file" ? ("." + getFile(path)[i].extension) : "")).trim();
         fileName = fileName.split(".");
         var fileExtension = fileName.length > 1 ? fileName[fileName.length - 1] : "txt";
         if (fileName.length > 1) {
           fileName = fileName.splice(0, fileName.length - 1).join(".");
         }
-        console.log(getFile(path)[i] + " " + fileName + " . " + fileExtension)
+        if (fileName[0] === "") {
+          fileName = "Untitled F" + getFile(path)[i].type.substring(1, getFile(path)[i].type.length);
+        }
         getFile(path)[i].name = fileName;
-        getFile(path)[i].extension = fileExtension;
+        if (getFile(path)[i].type === "file") {
+          
+          getFile(path)[i].extension = fileExtension;
+        }
         saveFiles();
         loadFiles(path);
       }
