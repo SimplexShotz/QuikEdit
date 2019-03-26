@@ -1,13 +1,18 @@
 <!DOCTYPE html>
-<!-- TODO: tools bar, auto login, logout -->
+<!-- TODO: tools bar, fix word count (don't count chars such as " - " or " & "') -->
 <html>
   <head>
     <title>QuikEdit</title>
+    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Ubuntu+Mono" rel="stylesheet">
+    <!-- JS Libraries -->
     <script src="jszip.min.js"></script>
     <script src="FileSaver.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/5.8.6/firebase.js"></script>
+    <!-- JQuery (only used to make the Dev Measure tool) -->
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <style>
       @font-face {
         font-family: "Vera Mono";
@@ -314,20 +319,33 @@
         position: fixed;
         left: 25%;
         right: 25%;
-        width: 50%;
+        width: calc(50% - 20px);
         top: 25%;
         bottom: 25%;
-        height: 50%;
+        height: calc(50% - 40px);
         border-radius: 10px;
         box-shadow: 0px 0px 10px rgba(200, 200, 200, 0.5);
-        padding: 20px;
+        padding: 20px 0px 20px 20px;
       }
       #editor-tools-popup-header {
         font-size: 20pt;
         font-family: "Roboto Medium", Helvetica, Arial;
+        margin-bottom: 20px;
+        padding-right: 20px;
       }
       #editor-tools-popup-x {
         float: right;
+      }
+      .editor-tools-popup-button {
+        background-color: rgb(250, 250, 250);
+        width: calc(50% - 15px);
+        margin: 0px 10px 10px 0px;
+        height: 100px;
+        border-radius: 50px;
+        font-size: 16pt;
+      }
+      .editor-tools-popup-button:focus {
+        outline: none;
       }
       .clear {
         clear: both;
@@ -427,7 +445,7 @@
         });
       }
       
-      var account; // username of the account
+      var account = ""; // username of the account
       
       function login() {
         var username = prompt("Enter your username.");
@@ -464,6 +482,7 @@
                 document.getElementById("login").style.display = "none"; // Hide Login button
                 document.getElementById("logout").style.display = "block"; // Show Logout button
                 // document.getElementById("newFile").style.marginRight = "0px"; // ^
+                toolFunctions.textWrapping = d[account].settings.textWrapping;
               }
             } else { // Invalid password
               alert("[ERROR] Invalid password!");
@@ -484,6 +503,7 @@
                   } else { // A valid password was entered
                     ref.child(username).child("password").set(window.btoa(password.join(""))); // Set the account's password
                     ref.child(username).child("files").set(JSON.stringify(files)); // Set the account's files
+                    ref.child(username).child("settings").set({ textWrapping: false }); // Set the account's settings
                     document.getElementById("login").style.display = "none"; // Fix styling
                     document.getElementById("newFile").style.marginRight = "0px"; // ^
                     valid = true; // Breaks out of the while loop
@@ -645,14 +665,69 @@
         // Change the padding of the content area:
         document.getElementById("content").style.padding = "50px 10% 50px 10%";
         updateLines(true);
+        toolFunctions.updateTextWrapping();
         currentOpenedFile = i;
       }
+      var toolFunctions = {
+        textWrapping: false,
+        toggleTextWrapping: function() {
+          if (account !== "") {
+            toolFunctions.textWrapping = !toolFunctions.textWrapping;
+            ref.once("value", function(data) {
+              var d = data.val();
+              ref.child(account).child("settings").child("textWrapping").set(!d[account].settings.textWrapping);
+            });
+          } else {
+            toolFunctions.textWrapping = !toolFunctions.textWrapping;
+          }
+          toolFunctions.updateTextWrapping();
+        },
+        updateTextWrapping: function() {
+          if (document.getElementById("editor-tools-popup-button-toggleTextWrapping")) {
+            document.getElementById("editor-tools-popup-button-toggleTextWrapping").innerHTML = (toolFunctions.textWrapping ? "Disable" : "Enable") + " Text Wrapping";
+          }
+          if (toolFunctions.textWrapping) { // Enabled
+            document.getElementById("editor").wrap = "on";
+            document.getElementById("editor").style.width = "calc(100% - 50px)";
+            document.getElementById("line-count").style.display = "none";
+          } else { // Disabled
+            document.getElementById("editor").wrap = "off";
+            document.getElementById("editor").style.width = "calc(100% - 99px)";
+            document.getElementById("line-count").style.display = "block";
+          }
+        },
+        addDevMeasure: function() {
+          var temp = document.getElementById("editor").value;
+          if (document.getElementById("devMeasure") === null) {
+            document.body.innerHTML += "<div id='devMeasure' style='position: absolute; top: 100px; left: 10px; z-index: 1000; background-color: rgb(0, 0, 0); padding: 10px 0px 0px 0px;'><textarea style='background-color: rgb(0, 0, 0); width: 20px; height: 20px; overflow: hidden;'></textarea></div>";
+            $("#devMeasure").draggable();
+            document.getElementById("editor").value = temp;
+          }
+        }
+      };
       function openTools() {
         document.getElementById("editor-tools-popup").style.display = "block";
         // Tools Header:
         document.getElementById("editor-tools-popup").innerHTML = "<div id='editor-tools-popup-header'>Tools<div id='editor-tools-popup-x' onclick='closeTools()'>X</div></div>";
         // Tools Contents:
-        document.getElementById("editor-tools-popup").innerHTML += "<div id='editor-tools-popup-contents'></div>"
+        var c = getFile(path)[currentOpenedFile];
+        var tools = [
+          // --- Document Info ---
+          "<button class='editor-tools-popup-button' onclick='alert(\"Word Count: " + c.contents.split(" ").join("\n").split("\n").filter(v => {
+            var letters = ("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789").split("");
+            return v !== "" && v.split("").some(vs => {
+              return ~letters.indexOf(vs);
+            });
+          }).length + "\\nCharacter Count: " + c.contents.split("").length + "\")'>Document Info</button>",
+          // --- Text Wrapping ---
+          "<button class='editor-tools-popup-button' id='editor-tools-popup-button-toggleTextWrapping' onclick='toolFunctions.toggleTextWrapping()'>Enable Text Wrapping</button>",
+          // --- Dev Measure ---
+          "<button class='editor-tools-popup-button' onclick='toolFunctions.addDevMeasure()'>Dev Measure</button>"
+        ];
+        // Add Tools
+        document.getElementById("editor-tools-popup").innerHTML += "<div id='editor-tools-popup-contents'>" + tools.join("") + "</div>";
+        // Text Wrapping
+        toolFunctions.updateTextWrapping();
       }
       function closeTools() {
         document.getElementById("editor-tools-popup").style.display = "none";
