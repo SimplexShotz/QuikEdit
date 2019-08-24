@@ -712,7 +712,25 @@
           a = a.split("");
           for (var i = 0; i < a.length; i++) {
             if (~txtArr.indexOf(a[i])) {
-              b += (txtArr.indexOf(a[i]) + 1) * Math.pow(64, i);
+              b += (txtArr.indexOf(a[i]) + 1) * Math.pow(64, a.length - 1 - i);
+            }
+          }
+          return b;
+        },
+        convertToCode: function(a) {
+          var txtArr = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_".split("");
+          var b = [];
+          var i = 0, bval;
+          while (a > 0) {
+            bval = floor(a / Math.pow(64, i)); // * Math.pow(64, i);
+            // b.push();
+            i++;
+            a -= bval * Math.pow(64, i);
+            alert("bval for " + i + ": " + bval);
+          }
+          for (var i = 0; i < a.length; i++) {
+            if (~txtArr.indexOf(a[i])) {
+              b += (txtArr.indexOf(a[i]) + 1) * Math.pow(64, a.length - 1 - i);
             }
           }
           return b;
@@ -721,10 +739,12 @@
           // var txtArr = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";
           public.once("value", function(data) {
             var d = data.val();
-            alert(toolFunctions.convertToValue(d.on));
+            alert("r1: " + toolFunctions.convertToValue(d.on));
+            alert("r2: " + toolFunctions.convertToCode(4467856773185));
           });
         }
       };
+      alert("v1");
       function openTools() {
         document.getElementById("editor-tools-popup").style.display = "block";
         // Tools Header:
