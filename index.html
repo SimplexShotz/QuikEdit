@@ -724,14 +724,9 @@
           while (a > 0) {
             bval = floor(a / Math.pow(64, i)); // * Math.pow(64, i);
             // b.push();
-            i++;
             a -= bval * Math.pow(64, i);
             alert("bval for " + i + ": " + bval);
-          }
-          for (var i = 0; i < a.length; i++) {
-            if (~txtArr.indexOf(a[i])) {
-              b += (txtArr.indexOf(a[i]) + 1) * Math.pow(64, a.length - 1 - i);
-            }
+            i++;
           }
           return b;
         },
@@ -744,7 +739,7 @@
           });
         }
       };
-      alert("v1");
+      alert("v2");
       function openTools() {
         document.getElementById("editor-tools-popup").style.display = "block";
         // Tools Header:
