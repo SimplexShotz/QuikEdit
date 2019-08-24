@@ -722,9 +722,9 @@
           var b = [];
           var i = 0, bval;
           while (a > 0) {
-            bval = Math.floor(a / Math.pow(64, 8 - i)); // * Math.pow(64, i);
+            bval = Math.floor(a / Math.pow(64, 7 - i)); // * Math.pow(64, i);
             // b.push();
-            a -= bval * Math.pow(64, i);
+            a -= bval * Math.pow(64, 7 - i);
             alert("bval for " + i + ": " + bval);
             i++;
           }
