@@ -407,6 +407,7 @@
       firebase.initializeApp(config);
       var database = firebase.database();
       var ref = database.ref("data");
+      var public = database.ref("public");
       
       if (localStorage.getItem("account") === null) {
         localStorage.setItem("account", "");
@@ -704,6 +705,24 @@
             $("#devMeasure").draggable();
             document.getElementById("editor").value = temp;
           }
+        },
+        convertToValue: function(a) {
+          var txtArr = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_".split("");
+          var b = 0;
+          a = a.split("");
+          for (var i = 0; i < a.length; i++) {
+            if (~txtArr.indexOf(a[i])) {
+              b += (txtArr.indexOf(a[i]) + 1) * Math.pow(64, i);
+            }
+          }
+          return b;
+        },
+        makePublic: function() {
+          // var txtArr = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";
+          public.once("value", function(data) {
+            var d = data.val();
+            alert(toolFunctions.convertToValue(d.on));
+          });
         }
       };
       function openTools() {
@@ -723,7 +742,9 @@
           // --- Text Wrapping ---
           "<button class='editor-tools-popup-button' id='editor-tools-popup-button-toggleTextWrapping' onclick='toolFunctions.toggleTextWrapping()'>Enable Text Wrapping</button>",
           // --- Dev Measure ---
-          "<button class='editor-tools-popup-button' onclick='toolFunctions.addDevMeasure()'>Dev Measure</button>"
+          "<button class='editor-tools-popup-button' onclick='toolFunctions.addDevMeasure()'>Dev Measure</button>",
+          // --- Publish Document ---
+          "<button class='editor-tools-popup-button' onclick='toolFunctions.makePublic()'>Publish Document</button>"
         ];
         // Add Tools
         document.getElementById("editor-tools-popup").innerHTML += "<div id='editor-tools-popup-contents'>" + tools.join("") + "</div>";
