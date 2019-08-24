@@ -722,7 +722,7 @@
           var b = [];
           var i = 0, bval;
           while (a > 0) {
-            bval = Math.floor(a / Math.pow(64, i)); // * Math.pow(64, i);
+            bval = Math.floor(a / Math.pow(64, i + 1)); // * Math.pow(64, i);
             // b.push();
             a -= bval * Math.pow(64, i);
             alert("bval for " + i + ": " + bval);
@@ -739,7 +739,7 @@
           });
         }
       };
-      alert("v3");
+      alert("v4");
       function openTools() {
         document.getElementById("editor-tools-popup").style.display = "block";
         // Tools Header:
