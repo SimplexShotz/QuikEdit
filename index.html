@@ -723,19 +723,18 @@
           var i = 0, bval;
           while (a > 0) {
             bval = Math.floor(a / Math.pow(64, 7 - i)); // * Math.pow(64, i);
-            // b.push();
+            b.push(txtArr[bval - 1]);
             a -= bval * Math.pow(64, 7 - i);
-            alert("bval for " + i + ": " + bval);
             i++;
           }
-          return b;
+          return b.join("");
         },
         makePublic: function() {
           // var txtArr = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";
           public.once("value", function(data) {
             var d = data.val();
             alert("r1: " + toolFunctions.convertToValue(d.on));
-            alert("r2: " + toolFunctions.convertToCode(4467856773185));
+            alert("r2: " + toolFunctions.convertToCode(toolFunctions.convertToValue(d.on)));
           });
         }
       };
