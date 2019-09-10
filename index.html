@@ -120,6 +120,12 @@
         border-radius: 10px;
         padding: 20px 0px 8px 0px;
       }
+      #files-container {
+        display: inline;
+      }
+      .icon-container {
+        display: inline;
+      }
       .icon-folder {
         display: inline-block;
         background-color: rgb(200, 200, 200);
@@ -408,7 +414,7 @@
       var database = firebase.database();
       var ref = database.ref("data");
       var public = database.ref("public");
-      
+
       if (localStorage.getItem("account") === null) {
         localStorage.setItem("account", "");
       }
@@ -446,9 +452,9 @@
           }
         });
       }
-      
+
       var account = ""; // username of the account
-      
+
       function login() {
         var username = prompt("Enter your username.");
         ref.once("value", function(data) {
@@ -535,9 +541,38 @@
           curFiles = curFiles[path[path.length - 1]].contents;
         }
         // Adds the files:
+        document.getElementById("files").innerHTML += "<div id='files-container'></div>";
         for (var i = 0; i < curFiles.length; i++) {
-          document.getElementById("files").innerHTML += "<div class='file' onclick='openPath(" + i + ");'><div class='icon-" + curFiles[i].type + "'><div class='icon-" + curFiles[i].type + "-inner'></div></div><div style='display: inline; position: relative; top: -3px;'>" + curFiles[i].name + "</div><div class='icon-trash-container' onclick='deletePath(" + i + ")'><div class='icon-trash'><div class='icon-trash-top'></div><div class='icon-trash-lid-top'></div><div class='icon-trash-lid-bottom'></div><div class='icon-trash-line-container'><div class='icon-trash-line icon-trash-line-1'></div><div class='icon-trash-line icon-trash-line-2'></div><div class='icon-trash-line icon-trash-line-3'></div></div></div></div><div class='icon-edit-container' onclick='editPath(" + i + ")'><div class='icon-edit-container-inner'><div class='icon-edit-end'></div><div class='icon-edit-main'></div><div class='icon-edit-tip'></div></div></div><div class='extension'>" + (curFiles[i].extension ? curFiles[i].extension : "folder") + "</div></div>"
+          document.getElementById("files-container").innerHTML += "<div class='file' onclick='openPath(" + i + ");' id='file-" + i + "'><div class='icon-" + curFiles[i].type + "'><div class='icon-" + curFiles[i].type + "-inner'></div></div><div style='display: inline; position: relative; top: -3px;'>" + curFiles[i].name + "</div><div class='icon-container'><div class='icon-trash-container' onclick='deletePath(" + i + ")'><div class='icon-trash'><div class='icon-trash-top'></div><div class='icon-trash-lid-top'></div><div class='icon-trash-lid-bottom'></div><div class='icon-trash-line-container'><div class='icon-trash-line icon-trash-line-1'></div><div class='icon-trash-line icon-trash-line-2'></div><div class='icon-trash-line icon-trash-line-3'></div></div></div></div><div class='icon-edit-container' onclick='editPath(" + i +")'><div class='icon-edit-container-inner'><div class='icon-edit-end'></div><div class='icon-edit-main'></div><div class='icon-edit-tip'></div></div></div></div><div class='extension'>" + (curFiles[i].extension ? curFiles[i].extension : "folder") + "</div><div class='file-cover'></div></div>";
         }
+        // Makes the files sortable:
+        $("#files-container").sortable({
+          update: function() {
+            var f = document.getElementById("files-container").childNodes;
+            var temp_files = [];
+            for (var i = 0; i < f.length; i++) {
+              temp_files.push(curFiles[Number(f[i].id.split("-")[1])]);
+            }
+            setFile(path, temp_files);
+            saveFiles();
+            loadFiles(path);
+          },
+          stop: function(e, ui) {
+            console.log(e);
+            var f = document.getElementById("files-container").childNodes;
+            for (var i = 0; i < f.length; i++) {
+              // Number(ui.item[0].id.split("-")[1]) is the number of the file being dragged
+              if (i !== Number(ui.item[0].id.split("-")[1])) {
+                if (curFiles[i].type === "folder" && e.clientX >= f[i].offsetLeft && e.clientY >= f[i].offsetTop && e.clientX <= f[i].offsetLeft + f[i].offsetWidth && e.clientY <= f[i].offsetTop + f[i].offsetHeight) {
+
+                  console.log("ADD TO FOLDER");
+                }
+              }
+            }
+            // console.log(e);
+            // console.log(e.pageY);
+          }
+        });
         // Adds the path at the top:
         var p = getPath(path);
         document.getElementById("path").innerHTML = "";
@@ -576,9 +611,19 @@
         }
         return curFiles;
       }
+      function setFile(path, val) {
+        if (path.length === 0) {
+          files = val;
+        } else if (path !== undefined) {
+          var last_path = path.pop();
+          var temp = getFile(path)[last_path];
+          temp.contents = val;
+          path.push(last_path);
+        }
+      }
       function saveFiles() {
         localStorage.setItem("quikFiles", JSON.stringify(files)); // Save to their device
-        if (account !== undefined) { // Save to their account
+        if (account !== "") { // Save to their account
           ref.child(account).child("files").set(JSON.stringify(files));
         }
       }
@@ -670,6 +715,17 @@
         toolFunctions.updateTextWrapping();
         currentOpenedFile = i;
       }
+      function moveFile(i) {
+        for (var j = 0; j < document.getElementsByClassName("icon-container").length; j++) {
+          document.getElementsByClassName("icon-container")[j].style.display = "none";
+        }
+        console.log(files);
+      }
+      function endMove() {
+        for (var i = 0; i < document.getElementsByClassName("icon-container").length; i++) {
+          document.getElementsByClassName("icon-container")[i].style.display = "inline";
+        }
+      }
       var toolFunctions = {
         textWrapping: false,
         toggleTextWrapping: function() {
@@ -738,7 +794,7 @@
           });
         }
       };
-      alert("v7");
+      // alert("v7");
       function openTools() {
         document.getElementById("editor-tools-popup").style.display = "block";
         // Tools Header:
@@ -798,7 +854,7 @@
         }
         getFile(path)[i].name = fileName;
         if (getFile(path)[i].type === "file") {
-          
+
           getFile(path)[i].extension = fileExtension;
         }
         saveFiles();
@@ -849,12 +905,12 @@
             a.click();
             setTimeout(function() {
               document.body.removeChild(a);
-              window.URL.revokeObjectURL(url);  
+              window.URL.revokeObjectURL(url);
             }, 0);
           }
         }
       }
-      
+
       // Add-ons:
       function keyEvent(e, elem, keyC, replace, delOffset, cursOffset) {
         if (!delOffset) {
