@@ -11,7 +11,7 @@
     <script src="jszip.min.js"></script>
     <script src="FileSaver.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/5.8.6/firebase.js"></script>
-    <!-- JQuery (only used to make the Dev Measure tool) -->
+    <!-- JQuery (used with the Dev Measure tool and sorting files) -->
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <style>
@@ -547,30 +547,48 @@
         }
         // Makes the files sortable:
         $("#files-container").sortable({
-          update: function() {
-            var f = document.getElementById("files-container").childNodes;
-            var temp_files = [];
-            for (var i = 0; i < f.length; i++) {
-              temp_files.push(curFiles[Number(f[i].id.split("-")[1])]);
-            }
-            setFile(path, temp_files);
-            saveFiles();
-            loadFiles(path);
+          update: function(e, ui) {
+
+
           },
           stop: function(e, ui) {
-            console.log(e);
-            var f = document.getElementById("files-container").childNodes;
+            var moved = false;
+            // Drop into folder:
+            var f = document.getElementById("files-container").childNodes; // might have to do with position of this; maybe don't use? use ---ui.item[0].parentNode.childNodes instead??
             for (var i = 0; i < f.length; i++) {
               // Number(ui.item[0].id.split("-")[1]) is the number of the file being dragged
               if (i !== Number(ui.item[0].id.split("-")[1])) {
+                console.log(ui.item[0].parentNode.childNodes[i]);
                 if (curFiles[i].type === "folder" && e.clientX >= f[i].offsetLeft && e.clientY >= f[i].offsetTop && e.clientX <= f[i].offsetLeft + f[i].offsetWidth && e.clientY <= f[i].offsetTop + f[i].offsetHeight) {
-
-                  console.log("ADD TO FOLDER");
+                  curFiles[i].contents.splice(0, 0, curFiles[Number(ui.item[0].id.split("-")[1])]);
+                  curFiles.splice(Number(ui.item[0].id.split("-")[1]), 1);
+                  if (Number(ui.item[0].id.split("-")[1]) < i) {
+                    i--;
+                  }
+                  path.push(i);
+                  saveFiles();
+                  loadFiles(path);
+                  moved = true;
+                  break;
                 }
               }
             }
-            // console.log(e);
-            // console.log(e.pageY);
+
+            // Manage files that have been moved
+
+            if (!moved) {
+              var f = document.getElementById("files-container").childNodes;
+              var temp_files = [];
+              for (var i = 0; i < f.length; i++) {
+                temp_files.push(curFiles[Number(f[i].id.split("-")[1])]);
+              }
+              setFile(path, temp_files);
+              saveFiles();
+              loadFiles(path);
+            }
+
+            // Drop over path link:
+
           }
         });
         // Adds the path at the top:
